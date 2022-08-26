@@ -1,0 +1,14 @@
+[package]
+edition = "2021"
+name    = "feta"
+version = "0.1.0"
+
+[dependencies]
+anyhow     = "1.0"
+dirs       = "4.0"
+eframe     = { version = "0.19", features = ["wgpu"] }
+env_logger = "0.8"
+image      = { version = "0.24", default-features = false, features = ["jpeg"] }
+log        = "0.4"
+v4l        = "0.13"
+# onnxruntime = "0.0.14"
