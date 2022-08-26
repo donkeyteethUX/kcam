@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{ensure, Context, Result};
 use eframe::{
     egui::{self, CentralPanel, ComboBox, SidePanel, Slider, TextureFilter},
-    NativeOptions,
+    App, NativeOptions,
 };
 use log::debug;
 
@@ -22,16 +22,16 @@ mod util;
 fn main() {
     env_logger::init();
 
-    let app = Feta::new().expect("Failed to start");
+    let app = KCam::new().expect("Failed to start");
     let window_opts = NativeOptions {
         maximized: true,
         ..Default::default()
     };
 
-    eframe::run_native("Feta", window_opts, Box::new(|_| Box::new(app)));
+    eframe::run_native("KCam", window_opts, Box::new(|_| Box::new(app)));
 }
 
-struct Feta {
+struct KCam {
     /// Handle to video capture device
     dev: Device,
 
@@ -51,14 +51,18 @@ struct Feta {
     menu_selections: HashMap<String, String>,
 }
 
-impl Feta {
+impl KCam {
     fn new() -> Result<Self> {
-        let mut dev = Device::new(0)?; // assumes /dev/video0 is what we want
+        let mut dev = Device::new(0 /* assumes /dev/video0 is the webcam */)?;
+
+        // Query available controls and sort them by type. Sorting improves the layout of control widgets.
+        let mut ctrl_descriptors = dev.query_controls().unwrap_or_default();
+        ctrl_descriptors.sort_by(|a, b| (a.typ as u32).cmp(&(b.typ as u32)));
 
         Ok(Self {
             menu_selections: HashMap::default(),
             stream: Self::get_stream(&mut dev)?,
-            ctrl_descriptors: dev.query_controls().unwrap_or_default(),
+            ctrl_descriptors,
             dev,
             message: String::default(),
         })
@@ -79,13 +83,13 @@ impl Feta {
         debug!("Active format:\n{}", format);
         debug!("Active parameters:\n{}", params);
 
-        UserptrStream::with_buffers(dev, buffer::Type::VideoCapture, 6)
+        UserptrStream::with_buffers(dev, buffer::Type::VideoCapture, 1)
             .context("Failed to begin stream")
     }
 }
 
-impl eframe::App for Feta {
-    fn update<'a>(&'a mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+impl App for KCam {
+    fn update<'a>(&'a mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         let next_frame = |stream: &'a mut UserptrStream| -> Result<Frame> {
             let (jpg, _) = stream.next().context("Failed to fetch frame")?;
             let rgb = decode(jpg).context("failed to decode jpg buffer")?;
