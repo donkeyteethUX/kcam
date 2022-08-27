@@ -5,7 +5,7 @@ use eframe::{
     egui::{self, CentralPanel, ComboBox, SidePanel, Slider, TextureFilter},
     App, NativeOptions,
 };
-use log::debug;
+use log::{debug, error};
 
 use util::{capture, decode, Frame};
 use v4l::{
@@ -92,7 +92,7 @@ impl App for KCam {
     fn update<'a>(&'a mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         let next_frame = |stream: &'a mut UserptrStream| -> Result<Frame> {
             let (jpg, _) = stream.next().context("Failed to fetch frame")?;
-            let rgb = decode(jpg).context("failed to decode jpg buffer")?;
+            let rgb = decode(jpg).context("Failed to decode jpg buffer")?;
 
             Ok(Frame { jpg, rgb })
         };
@@ -259,6 +259,7 @@ impl App for KCam {
             }
 
             if let Err(e) = &frame {
+                error!("{:?}", e);
                 self.message = e.to_string()
             };
 
