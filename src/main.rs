@@ -35,7 +35,7 @@ struct KCam {
     /// A list of all available video devices on the system
     available_devices: Vec<Node>,
 
-    /// The index of the currently selected device
+    /// The index of the currently selected device in the list of `available_devices`
     selected_device: usize,
 
     /// Has the device selection changed?
@@ -63,14 +63,15 @@ struct KCam {
 impl KCam {
     fn new() -> Result<Self> {
         let available_devices: Vec<_> = enum_devices().into_iter().filter(check_device).collect();
-        let selected_device = available_devices[0].index();
+        let selected_device = 0; // first device in the list
 
         ensure!(
             !available_devices.is_empty(),
             "No capable video devices found. Run with RUST_LOG=info for details."
         );
 
-        let mut dev = Device::new(selected_device).context("Failed to open video device.")?;
+        let mut dev = Device::new(available_devices[selected_device].index())
+            .context("Failed to open video device.")?;
         let stream = get_stream(&mut dev).context("Failed to open stream.")?;
 
         Ok(Self {
@@ -80,7 +81,7 @@ impl KCam {
             ctrl_descriptors: get_descriptors(&dev),
             dev,
             message: String::default(),
-            selected_device: available_devices[0].index(),
+            selected_device,
             available_devices,
         })
     }
