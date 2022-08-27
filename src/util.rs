@@ -9,10 +9,10 @@ pub struct Frame<'a> {
     pub rgb: ColorImage,
 }
 
-/// Saves jpg buffer to ~/captures
+/// Saves jpg buffer to ~/Pictures/kcam
 pub fn capture(img: &[u8]) -> Result<PathBuf> {
-    let home_dir = dirs::home_dir().context("cannot find home directory")?;
-    let save_dir = home_dir.join("captures");
+    let picture_dir = dirs::picture_dir().context("cannot find picture directory")?;
+    let save_dir = picture_dir.join("kcam");
     fs::create_dir_all(&save_dir)?;
 
     let mut i: u32 = 0;
