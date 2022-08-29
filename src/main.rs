@@ -10,7 +10,7 @@ use log::{debug, error};
 use util::{capture, check_device, decode, get_stream, Frame};
 use v4l::{
     context::{enum_devices, Node},
-    control::{Description, MenuItem, Type, Value},
+    control::{Description, Type, Value},
     io::traits::CaptureStream,
     prelude::*,
     Control,
@@ -150,11 +150,6 @@ impl App for KCam {
                 }
             }
 
-            let stringify = |item: &MenuItem| match item {
-                MenuItem::Name(name) => name.to_owned(),
-                MenuItem::Value(val) => val.to_string(),
-            };
-
             if sidebar.button("Reset").clicked() {
                 // Set each control to the default value provided by its descriptor.
                 for desc in &self.ctrl_descriptors {
@@ -170,7 +165,7 @@ impl App for KCam {
                             Some(items) => items.iter(),
                             None => continue, // unlikely edge case: menu with no items
                         }
-                        .map(|(v, item)| (v, stringify(item)))
+                        .map(|(v, item)| (v, item.to_string()))
                         .find_map(|(v, label)| (*v as i64 == desc.default).then_some(label))
                         .unwrap();
 
@@ -253,7 +248,7 @@ impl App for KCam {
                             Some(items) => items.iter(),
                             None => continue, // unlikely edge case: menu with no items
                         }
-                        .map(|(v, item)| (v, stringify(item)))
+                        .map(|(v, item)| (Value::Integer(*v as i64), item.to_string()))
                         .collect();
 
                         // We can't query the current value of Menu controls. As a workaround, track the current value
@@ -263,30 +258,20 @@ impl App for KCam {
                             .entry(desc.name.clone())
                             .or_insert_with(|| "select".to_string());
 
-                        let mut changed = false;
+                        let mut new_val = None;
                         ComboBox::from_label(&desc.name)
-                            .selected_text(selected.to_string())
+                            .selected_text(selected.as_str())
                             .show_ui(sidebar, |ui| {
-                                for (_v, label) in &menu_items {
-                                    if ui.selectable_label(selected == label, label).clicked() {
-                                        *selected = label.to_owned();
-                                        changed = true;
+                                for (v, label) in menu_items {
+                                    if ui.selectable_label(*selected == label, &label).clicked() {
+                                        new_val = Some(v);
+                                        *selected = label;
                                     }
                                 }
                             });
 
-                        if changed {
-                            let value = menu_items
-                                .iter()
-                                .find_map(|(v, label)| (label == selected).then_some(v))
-                                .unwrap();
-
-                            let ctrl = Control {
-                                value: Value::Integer(**value as i64),
-                                id: desc.id,
-                            };
-
-                            if let Err(e) = self.dev.set_control(ctrl) {
+                        if let Some(value) = new_val {
+                            if let Err(e) = self.dev.set_control(Control { value, id: desc.id }) {
                                 debug!("Unable to set {}: {}", desc.name, e);
                             }
                         }
