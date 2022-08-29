@@ -5,10 +5,10 @@ version = "0.1.0"
 
 [dependencies]
 anyhow     = "1.0"
-chrono     = { version = "0.4", default-features = false, features = ["clock"]}
+chrono     = { version = "0.4", default-features = false, features = ["clock"] }
 dirs       = "4.0"
 eframe     = { version = "0.19", features = ["wgpu"] }
-env_logger = "0.8"
+env_logger = { version = "0.8", default-features = false }
 image      = { version = "0.24", default-features = false, features = ["jpeg"] }
 log        = "0.4"
-v4l        = "0.13"
+v4l        = { version = "0.13" }

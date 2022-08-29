@@ -1,4 +1,4 @@
-use std::{collections::HashMap, process::Termination};
+use std::process::Termination;
 
 use anyhow::{ensure, Context, Result};
 use eframe::{
@@ -6,8 +6,6 @@ use eframe::{
     App, NativeOptions,
 };
 use log::{debug, error};
-
-use util::{capture, check_device, decode, get_stream, Frame};
 use v4l::{
     context::{enum_devices, Node},
     control::{Description, Type, Value},
@@ -16,9 +14,8 @@ use v4l::{
     Control,
 };
 
-use crate::util::get_descriptors;
-
 mod util;
+use util::{capture, check_device, decode, get_descriptors, get_stream, Frame};
 
 fn main() -> impl Termination {
     env_logger::init();
@@ -54,12 +51,6 @@ struct KCam {
 
     /// Descriptions of available controls
     ctrl_descriptors: Vec<Description>,
-
-    /// Currently selected options for Menu controls.
-    //
-    // It would be best to use the driver as the single source of truth, but
-    // the v4l rust API does not have a way to query the active value for "Menu" controls.
-    menu_selections: HashMap<String, String>,
 }
 
 impl KCam {
@@ -77,7 +68,6 @@ impl KCam {
         let stream = get_stream(&mut dev).context("Failed to open stream.")?;
 
         Ok(Self {
-            menu_selections: HashMap::default(),
             device_changed: false,
             stream,
             ctrl_descriptors: get_descriptors(&dev),
@@ -161,19 +151,6 @@ impl App for KCam {
                         _ => continue,
                     };
 
-                    // Keep the menu_selections cache up-to-date.
-                    if matches!(desc.typ, Type::Menu) {
-                        let label = match desc.items.as_ref() {
-                            Some(items) => items.iter(),
-                            None => continue, // unlikely edge case: menu with no items
-                        }
-                        .map(|(v, item)| (v, item.to_string()))
-                        .find_map(|(v, label)| (*v as i64 == desc.default).then_some(label))
-                        .unwrap();
-
-                        self.menu_selections.insert(desc.name.to_owned(), label);
-                    }
-
                     if let Err(e) = self.dev.set_control(Control { value, id: desc.id }) {
                         debug!("Unable to set {}: {}", desc.name, e);
                     }
@@ -190,17 +167,17 @@ impl App for KCam {
             // | Menu         -> Dropdown    |
             // +-----------------------------+
             for desc in &mut self.ctrl_descriptors {
+                let current_val = match self.dev.control(desc.id) {
+                    Ok(ctrl) => ctrl.value,
+                    Err(e) => {
+                        debug!("Failed to get value for {:?}: {:?}", desc.name, e);
+                        continue;
+                    }
+                };
+
                 match desc.typ {
                     Type::Integer => {
-                        let current_value = match self.dev.control(desc.id) {
-                            Ok(ctrl) => ctrl.value,
-                            Err(e) => {
-                                debug!("Failed to get value for {:?}: {:?}", desc.name, e);
-                                continue;
-                            }
-                        };
-
-                        let mut value = match current_value {
+                        let mut value = match current_val {
                             Value::Integer(v) => v,
                             _ => unreachable!(),
                         };
@@ -221,15 +198,7 @@ impl App for KCam {
                         }
                     }
                     Type::Boolean => {
-                        let current_value = match self.dev.control(desc.id) {
-                            Ok(ctrl) => ctrl.value,
-                            Err(e) => {
-                                debug!("Failed to get value for {:?}: {:?}", desc.name, e);
-                                continue;
-                            }
-                        };
-
-                        let mut value = match current_value {
+                        let mut value = match current_val {
                             Value::Boolean(v) => v,
                             _ => unreachable!(),
                         };
@@ -253,23 +222,20 @@ impl App for KCam {
                         .map(|(v, item)| (Value::Integer(*v as i64), item.to_string()))
                         .collect();
 
-                        // We can't query the current value of Menu controls. As a workaround, track the current value
-                        // once the user selects one. On startup, the current value is not known.
-                        let selected = self
-                            .menu_selections
-                            .entry(desc.name.clone())
-                            .or_insert_with(|| "select".to_string());
+                        let selected = menu_items
+                            .iter()
+                            .find_map(|(v, label)| (*v == current_val).then_some(label.to_owned()))
+                            .unwrap();
 
                         let mut new_val = None;
                         ComboBox::from_label(&desc.name)
-                            .selected_text(selected.as_str())
+                            .selected_text(&selected)
                             .show_ui(sidebar, |ui| {
-                                for (v, label) in menu_items {
-                                    if ui.selectable_label(*selected == label, &label).clicked() {
-                                        new_val = Some(v);
-                                        *selected = label;
-                                    }
-                                }
+                                new_val = menu_items.into_iter().find_map(|(v, label)| {
+                                    ui.selectable_label(selected == *label, label)
+                                        .clicked()
+                                        .then_some(v)
+                                });
                             });
 
                         if let Some(value) = new_val {
