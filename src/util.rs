@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use anyhow::{ensure, Context, Result};
+use chrono::Local;
 use eframe::epaint::ColorImage;
 use image::{codecs::jpeg::JpegDecoder, DynamicImage};
 use log::{debug, info};
@@ -16,23 +17,22 @@ pub struct Frame<'a> {
 
 /// Saves jpg buffer to ~/Pictures/kcam if possible, or the current directory otherwise.
 pub fn capture(img: &[u8]) -> Result<PathBuf> {
+    let save_img = |parent_dir: PathBuf| -> Result<PathBuf> {
+        let save_dir = parent_dir.join("kcam");
+
+        fs::create_dir_all(&save_dir)?;
+        let ts = Local::now().format("%Y-%m-%d_%H-%M-%S-%3f");
+        let path = save_dir.join(format!("{}.jpg", ts));
+
+        fs::write(&path, img).context("unable to write image")?;
+        Ok(path)
+    };
+
     let save_dir = dirs::picture_dir()
         .or_else(|| dirs::home_dir().map(|home| home.join("Pictures")))
-        .unwrap_or_default()
-        .join("kcam");
+        .unwrap_or_default();
 
-    fs::create_dir_all(&save_dir)?;
-
-    let mut i: u32 = 0;
-    let mut path = save_dir.join(format!("img_{}.jpg", i));
-
-    while path.exists() {
-        i += 1;
-        path = save_dir.join(format!("img_{}.jpg", i));
-    }
-
-    fs::write(&path, img).context("unable to write image")?;
-    Ok(path)
+    save_img(save_dir).or_else(|_| save_img(PathBuf::default()))
 }
 
 pub fn decode(jpg_img: &[u8]) -> Result<ColorImage> {
