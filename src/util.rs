@@ -14,10 +14,13 @@ pub struct Frame<'a> {
     pub rgb: ColorImage,
 }
 
-/// Saves jpg buffer to ~/Pictures/kcam
+/// Saves jpg buffer to ~/Pictures/kcam if possible, or the current directory otherwise.
 pub fn capture(img: &[u8]) -> Result<PathBuf> {
-    let picture_dir = dirs::picture_dir().context("cannot find picture directory")?;
-    let save_dir = picture_dir.join("kcam");
+    let save_dir = dirs::picture_dir()
+        .or_else(|| dirs::home_dir().map(|home| home.join("Pictures")))
+        .unwrap_or_default()
+        .join("kcam");
+
     fs::create_dir_all(&save_dir)?;
 
     let mut i: u32 = 0;
