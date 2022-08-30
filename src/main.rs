@@ -145,7 +145,7 @@ impl App for KCam {
                 if sidebar.button("Take Photo").clicked() {
                     self.message = match capture(frame.jpg) {
                         Ok(path) => format!("Saved capture: {}", path.display()),
-                        Err(e) => format!("Failed to take photo: {}", e),
+                        Err(e) => format!("Failed to take photo: {:?}", e),
                     };
                 }
             }
