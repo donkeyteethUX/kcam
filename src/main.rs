@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, process::Termination};
 
 use anyhow::{ensure, Context, Result};
 use eframe::{
@@ -20,16 +20,18 @@ use crate::util::get_descriptors;
 
 mod util;
 
-fn main() {
+fn main() -> impl Termination {
     env_logger::init();
 
-    let app = KCam::new().expect("Failed to start");
+    let app = KCam::new().context("Failed to start")?;
     let window_opts = NativeOptions {
         maximized: true,
         ..Default::default()
     };
 
     eframe::run_native("KCam", window_opts, Box::new(|_| Box::new(app)));
+
+    Ok::<(), anyhow::Error>(())
 }
 struct KCam {
     /// A list of all available video devices on the system
