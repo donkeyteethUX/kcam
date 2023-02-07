@@ -2,7 +2,7 @@ use std::process::Termination;
 
 use anyhow::{ensure, Context, Result};
 use eframe::{
-    egui::{self, CentralPanel, ComboBox, SidePanel, Slider, TextureFilter},
+    egui::{self, CentralPanel, ComboBox, SidePanel, Slider, TextureOptions},
     App, NativeOptions,
 };
 use log::{debug, error};
@@ -261,7 +261,7 @@ impl App for KCam {
             CentralPanel::default().show(ctx, |image_area| {
                 let tex = image_area
                     .ctx()
-                    .load_texture("frame", rgb, TextureFilter::Linear);
+                    .load_texture("frame", rgb, TextureOptions::LINEAR);
                 image_area.image(&tex, image_area.available_size());
             });
         }

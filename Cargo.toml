@@ -4,11 +4,14 @@ name    = "kcam"
 version = "0.1.0"
 
 [dependencies]
-anyhow     = "1.0"
-chrono     = { version = "0.4", default-features = false, features = ["clock"] }
-dirs       = "4.0"
-eframe     = { version = "0.19", features = ["wgpu"] }
-env_logger = { version = "0.8", default-features = false }
-image      = { version = "0.24", default-features = false, features = ["jpeg"] }
-log        = "0.4"
-v4l        = { version = "0.13" }
+anyhow = "1.0"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+dirs = "4.0"
+eframe = { version = "0.20", default-features = false, features = [
+    "wgpu",
+    "default_fonts",
+] }
+env_logger = { version = "0.10", default-features = false }
+image = { version = "0.24", default-features = false, features = ["jpeg"] }
+log = "0.4"
+v4l = { version = "0.13" }
