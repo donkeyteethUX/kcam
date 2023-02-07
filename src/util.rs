@@ -22,7 +22,7 @@ pub fn capture(img: &[u8]) -> Result<PathBuf> {
 
         fs::create_dir_all(&save_dir)?;
         let ts = Local::now().format("%Y-%m-%d_%H-%M-%S-%3f");
-        let path = save_dir.join(format!("{}.jpg", ts));
+        let path = save_dir.join(format!("{ts}.jpg"));
 
         fs::write(&path, img).context("unable to write image")?;
         Ok(path)
