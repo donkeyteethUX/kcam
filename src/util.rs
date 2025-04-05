@@ -1,13 +1,13 @@
-use std::{fs, path::PathBuf};
+use std::{fs, io::Cursor, path::PathBuf};
 
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use chrono::Local;
 use eframe::epaint::ColorImage;
-use image::{codecs::jpeg::JpegDecoder, DynamicImage};
+use image::{DynamicImage, codecs::jpeg::JpegDecoder};
 use log::{debug, info};
 use v4l::{
-    buffer, context::Node, control::Description, prelude::UserptrStream, video::Capture, Device,
-    FourCC,
+    Device, FourCC, buffer, context::Node, control::Description, prelude::UserptrStream,
+    video::Capture,
 };
 
 pub struct Frame<'a> {
@@ -36,7 +36,7 @@ pub fn capture(img: &[u8]) -> Result<PathBuf> {
 }
 
 pub fn decode(jpg_img: &[u8]) -> Result<ColorImage> {
-    let de = JpegDecoder::new(jpg_img)?;
+    let de = JpegDecoder::new(Cursor::new(jpg_img))?;
     let img = DynamicImage::from_decoder(de)?.to_rgba8();
     let size = [img.width() as _, img.height() as _];
     let egui_img = ColorImage::from_rgba_unmultiplied(size, img.as_flat_samples().as_slice());

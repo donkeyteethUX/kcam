@@ -1,32 +1,32 @@
 use std::process::Termination;
 
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use eframe::{
-    egui::{self, CentralPanel, ComboBox, SidePanel, Slider, TextureOptions},
     App, NativeOptions,
+    egui::{self, CentralPanel, ComboBox, Image, SidePanel, Slider, TextureOptions},
 };
 use log::{debug, error};
 use v4l::{
-    context::{enum_devices, Node},
+    Control,
+    context::{Node, enum_devices},
     control::{Description, Type, Value},
     io::traits::CaptureStream,
     prelude::*,
-    Control,
 };
 
 mod util;
-use util::{capture, check_device, decode, get_descriptors, get_stream, Frame};
+use util::{Frame, capture, check_device, decode, get_descriptors, get_stream};
 
 fn main() -> impl Termination {
     env_logger::init();
 
     let app = KCam::new().context("Failed to start")?;
     let window_opts = NativeOptions {
-        maximized: true,
+        viewport: egui::ViewportBuilder::default().with_maximized(true),
         ..Default::default()
     };
 
-    eframe::run_native("KCam", window_opts, Box::new(|_| Box::new(app)));
+    eframe::run_native("KCam", window_opts, Box::new(|_| Ok(Box::new(app))))?;
 
     Ok::<(), anyhow::Error>(())
 }
@@ -262,7 +262,7 @@ impl App for KCam {
                 let tex = image_area
                     .ctx()
                     .load_texture("frame", rgb, TextureOptions::LINEAR);
-                image_area.image(&tex, image_area.available_size());
+                image_area.add(Image::new(&tex).shrink_to_fit());
             });
         }
 
