@@ -13,6 +13,7 @@ eframe = { version = "0.31", default-features = false, features = [
     "x11",
     "wayland",
 ] }
+catppuccin-egui = { version = "5.5.0", default-features = false, features = ["egui31"] }
 env_logger = { version = "0.11", default-features = false }
 image = { version = "0.25", default-features = false, features = ["jpeg"] }
 log = "0.4"

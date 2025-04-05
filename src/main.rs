@@ -90,6 +90,8 @@ impl KCam {
 
 impl App for KCam {
     fn update<'a>(&'a mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
+        catppuccin_egui::set_theme(&ctx, catppuccin_egui::FRAPPE); // this looks nice.
+
         if self.device_changed {
             let device_index = self.available_devices[self.selected_device].index();
 
